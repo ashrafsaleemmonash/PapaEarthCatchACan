@@ -23,7 +23,9 @@
         var blocks = []
         var playerBlock
         var textBlock;
-
+        var startBlock;
+        var wonBlock;
+        var restartBlock;
         //Declaration For Screen Size
         var screenWidth = 1024;
         var screenHeight = 768;
@@ -51,27 +53,42 @@
         var background = new Image();
         background.src = "https://i.imgur.com/vwRgKY9.png";
 
+        var won = false;
 
         //Drawing background
-        background.onload = function () {
-            ctx.drawImage(background, 0, 0);
-        }
+        //background.onload = function () {
+        //    ctx.drawImage(background, 0, 0);
+        //}
 
         //Start function for game
         function startGame() {
+            
             //Calling myGameArea function
             myGameArea.start();
-            //Creating the number of blocks & setting their properties.
-            for (let i = 0; i < numberOfBlocks; i++) {
-                blocks[i] = new component(blockWidth, blockHeight, "red", (screenWidth / 4 * (i + 1)) - (screenWidth / 8) - 5, 0, 3, redImage);
-            }
-            // Creating the logic to select the "target block aka can"
-            var blueMarker = Math.floor((Math.random() * numberOfBlocks));
-            blocks[blueMarker].updateImage("blue");
-            //Creating the black block & its properties
-            playerBlock = new component(playerWidth, playerHeight, "green", screenWidth / 2, screenHeight - 200, 10, playerImage)
-            //Creating the text block and its properties
-            textBlock = new componentText(10, 30, "black", "20px", "Arial", "0")
+            startBlock = new componentText(400, 650, "black", "50px", "Arial", "0");
+            startBlock.text = "Click To Start";
+            startBlock.update();
+            restartBlock = new componentText(350, 750, "black", "50px", "Arial", "0");
+            restartBlock.text = "";
+            restartBlock.update();
+
+            myGameArea.canvas.addEventListener("click", function (event) {
+                //Creating the number of blocks & setting their properties.
+                for (let i = 0; i < numberOfBlocks; i++) {
+                    blocks[i] = new component(blockWidth, blockHeight, "red", (screenWidth / 4 * (i + 1)) - (screenWidth / 8) - 5, 0, 3, redImage);
+                }
+                // Creating the logic to select the "target block aka can"
+                var blueMarker = Math.floor((Math.random() * numberOfBlocks));
+                blocks[blueMarker].updateImage("blue");
+                //Creating the black block & its properties
+                playerBlock = new component(playerWidth, playerHeight, "green", screenWidth / 2, screenHeight - 200, 10, playerImage)
+                //Creating the text block and its properties
+                textBlock = new componentText(800, 700, "black", "40px", "Arial", "0")
+                startBlock.text = "";
+                won = false;
+                score = 0;
+                myGameArea.startInterval();
+            })
         }
 
         //Creating the myGameArea funcetion
@@ -84,7 +101,10 @@
                 this.canvas.height = screenHeight;
                 this.context = this.canvas.getContext("2d");
                 document.body.insertBefore(this.canvas, document.body.childNodes[0]);
-                this.interval = setInterval(updateGameArea, 20);
+            //    this.interval = setInterval(updateGameArea, 20);
+            },
+            startInterval: function () {
+                this.startInterval = setInterval(updateGameArea, 20);
             },
             // Creating a function area to reset the canvas
             clear: function () {
@@ -103,9 +123,9 @@
             this.image = new Image();
             this.image.src = imageSrc;
             ctx = myGameArea.context;
-            this.image.onload = function () {
-                ctx.drawImage(this.image, 0, 0);
-            };
+            //this.image.onload = function () {
+            //    ctx.drawImage(this.image, 0, 0);
+            //};
             // Setting the canvas properties
             ctx.fillRect(this.x, this.y, this.width, this.height);
             this.update = function () {
@@ -185,53 +205,69 @@
 
         // the update game function
         function updateGameArea() {
-            var newLevel = false;
-            myGameArea.clear();
-            for (index in blocks) {
-                // Setting the bound limit for until when the blocks will drop too.
-                if (blocks[index].y < screenHeight - 30) {
-                    blocks[index].y += blocks[index].speed;
-                }
-                // If bound limit reached, a reset of the level is done.
-                else {
-                    newLevel = true;
-                }
-            }
-            // If a crash with the choosen blue block occurs a 1+ in score will be done.
-            for (index in blocks) {
-                if (playerBlock.crashWith(blocks[index])) {
-                    if (blocks[index].color == "blue") {
-                        score += 1;
-                    }
-                    newLevel = true;
-                }
-
-            }
-            // Setting the cordinates and updating all the blocks to red.
-            if (newLevel) {
+            if (!won) {
+                var newLevel = false;
+                myGameArea.clear();
                 for (index in blocks) {
-                    blocks[index].y = 0;
-                    blocks[index].updateImage("red");
-                
+                    // Setting the bound limit for until when the blocks will drop too.
+                    if (blocks[index].y < screenHeight - 30) {
+                        blocks[index].y += blocks[index].speed;
+                    }
+                    // If bound limit reached, a reset of the level is done.
+                    else {
+                        newLevel = true;
+                    }
                 }
-                // Overwriting the red block with a blue block
-                var blueMarker = Math.floor((Math.random() * numberOfBlocks));
-                blocks[blueMarker].updateImage("blue");
+                // If a crash with the choosen blue block occurs a 1+ in score will be done.
+                for (index in blocks) {
+                    if (playerBlock.crashWith(blocks[index])) {
+                        if (blocks[index].color == "blue") {
+                            score += 1;
+                        }
+                        newLevel = true;
+                    }
+
+                }
+                if (score == 1) {
+                    won = true;
+                }
+                // Setting the cordinates and updating all the blocks to red.
+                if (newLevel) {
+                    for (index in blocks) {
+                        blocks[index].y = 0;
+                        blocks[index].updateImage("red");
+
+                    }
+                    // Overwriting the red block with a blue block
+                    var blueMarker = Math.floor((Math.random() * numberOfBlocks));
+                    blocks[blueMarker].updateImage("blue");
+                }
+                // Making it an update for the score
+                textBlock.text = "Score: " + score;
+                // Calling the move function
+                move();
+                // Calling the update for the playerblock
+                playerBlock.update();
+                // calling an update for the textBlock
+                textBlock.update();
+                // calling an update for all blocks
+                for (index in blocks) {
+                    blocks[index].update();
+                }
+                //// Calling the background image to be drawn.
+                //myGameArea.context.drawImage("https://i.imgur.com/vwRgKY9.png", 0, 0)
             }
-            // Making it an update for the score
-            textBlock.text = "Score: " + score;
-            // Calling the move function
-            move();
-            // Calling the update for the playerblock
-            playerBlock.update();
-            // calling an update for the textBlock
-            textBlock.update();
-            // calling an update for all blocks
-            for (index in blocks) {
-                blocks[index].update();
+            else {
+                startBlock.text = "Congrats, you won !";
+                restartBlock.text = "Click to restart";
+                startBlock.x = 300;
+                startBlock.y = 700;
+                //restartBlock.x = 350;
+                //restartBlock.y = 800;
+                startBlock.update();
+                restartBlock.update();
             }
-            // Calling the background image to be drawn.
-            myGameArea.context.drawImage("https://i.imgur.com/vwRgKY9.png", 0, 0)
+
         }
     </script>
 
